@@ -1,0 +1,1325 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="基于 Rust + Axum 的高性能文件加速下载服务">
+      
+      
+        <meta name="author" content="Jetsung Chan">
+      
+      
+        <link rel="canonical" href="https://filetas.jetsung.com/REQUIREMENTS/">
+      
+      
+        <link rel="prev" href="./..">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.65">
+    
+    
+      
+        <title>需求文档 - Filetas</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.40d3fdbb.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.812a03bb.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#filetas" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="Filetas" class="md-header__button md-logo" aria-label="Filetas" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Filetas
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              需求文档
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun-moon" viewBox="0 0 24 24"><path d="M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/jetsung/filetas" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jetsung/filetas
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="Filetas" class="md-nav__button md-logo" aria-label="Filetas" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    Filetas
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jetsung/filetas" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jetsung/filetas
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-rocket" viewBox="0 0 24 24"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+  首页
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  需求文档
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  需求文档
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 服务配置与启动
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 服务配置与启动">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 命令行与环境变量配置
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 日志级别与初始化
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 服务启动与监听
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 入口路由与 URL 解析
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 入口路由与 URL 解析">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.1 入口路径解析与请求路由
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.2 目标 URL 协议修复与补全
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 反向代理转发
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 反向代理转发">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 方法白名单与 OPTIONS 处理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 上游请求构造
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.3 重定向手动跟随
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.4 流式响应与响应头处理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.5 GitHub 加速规则
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-github-api-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.6 GitHub API Token 注入
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-git-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.7 Git 智能 HTTP 代理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-web" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. Web 界面与站点元数据
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Web 界面与站点元数据">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.1 首页模板渲染
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-favicon-robotstxt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.2 favicon 与 robots.txt
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5. 部署与运行
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1. 服务配置与启动
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. 服务配置与启动">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.1 命令行与环境变量配置
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.2 日志级别与初始化
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        1.3 服务启动与监听
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2. 入口路由与 URL 解析
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. 入口路由与 URL 解析">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.1 入口路径解析与请求路由
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-url" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        2.2 目标 URL 协议修复与补全
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3. 反向代理转发
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. 反向代理转发">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.1 方法白名单与 OPTIONS 处理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.2 上游请求构造
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.3 重定向手动跟随
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.4 流式响应与响应头处理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.5 GitHub 加速规则
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-github-api-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.6 GitHub API Token 注入
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-git-http" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        3.7 Git 智能 HTTP 代理
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-web" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4. Web 界面与站点元数据
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Web 界面与站点元数据">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.1 首页模板渲染
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-favicon-robotstxt" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        4.2 favicon 与 robots.txt
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        5. 部署与运行
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+<h1 id="filetas">Filetas 需求文档<a class="headerlink" href="#filetas" title="Permanent link">&para;</a></h1>
+<p>基于 Rust + Axum 的高性能文件加速下载服务。</p>
+<blockquote>
+<p>文档版本：对应代码 v0.3.2（2026-09-25，main 分支）
+代码位置：<code>src/main.rs</code>（单文件实现）、<code>templates/index.html</code>（首页模板）</p>
+</blockquote>
+<hr />
+<h2 id="1">1. 服务配置与启动<a class="headerlink" href="#1" title="Permanent link">&para;</a></h2>
+<h3 id="11">1.1 命令行与环境变量配置<a class="headerlink" href="#11" title="Permanent link">&para;</a></h3>
+<p>系统通过 clap 支持以下配置项（CLI 参数与环境变量等效）：</p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>短参</th>
+<th>长参</th>
+<th>环境变量</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>监听地址</td>
+<td><code>-H</code></td>
+<td><code>--host</code></td>
+<td><code>HOST</code></td>
+<td><code>0.0.0.0</code></td>
+</tr>
+<tr>
+<td>监听端口</td>
+<td><code>-p</code></td>
+<td><code>--port</code></td>
+<td><code>PORT</code></td>
+<td><code>3000</code></td>
+</tr>
+<tr>
+<td>页面标题</td>
+<td><code>-t</code></td>
+<td><code>--title</code></td>
+<td><code>TITLE</code></td>
+<td><code>文件加速下载</code></td>
+</tr>
+<tr>
+<td>模板目录</td>
+<td>（无）</td>
+<td><code>--template-dir</code></td>
+<td><code>TEMPLATE_DIR</code></td>
+<td><code>templates</code></td>
+</tr>
+<tr>
+<td>上游 UA</td>
+<td>（无）</td>
+<td><code>--user-agent</code></td>
+<td><code>USER_AGENT</code></td>
+<td>Chrome 134 Linux UA 字符串</td>
+</tr>
+<tr>
+<td>上游代理</td>
+<td>（无）</td>
+<td><code>--proxy</code></td>
+<td><code>PROXY</code></td>
+<td>（空，不使用代理）</td>
+</tr>
+<tr>
+<td>详细日志</td>
+<td><code>-v</code></td>
+<td><code>--verbose</code></td>
+<td>（无）</td>
+<td>false</td>
+</tr>
+<tr>
+<td>静默日志</td>
+<td><code>-q</code></td>
+<td><code>--quiet</code></td>
+<td>（无）</td>
+<td>false</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>环境变量配置端口：设置 <code>PORT=9000</code> 且不传 <code>--port</code> 时，服务监听 9000 端口。</li>
+<li>不传任何参数时使用全部默认值：监听 <code>0.0.0.0:3000</code>，标题「文件加速下载」，模板目录 <code>templates</code>。</li>
+</ul>
+<h3 id="12">1.2 日志级别与初始化<a class="headerlink" href="#12" title="Permanent link">&para;</a></h3>
+<p>日志级别按以下规则确定（<code>RUST_LOG</code> 环境变量可覆盖默认值）：</p>
+<ul>
+<li><code>-v</code> / <code>--verbose</code>：<code>filetas=debug,tower_http=debug</code></li>
+<li><code>-q</code> / <code>--quiet</code>：<code>filetas=warn,tower_http=warn</code></li>
+<li>默认：<code>filetas=info,tower_http=info</code></li>
+</ul>
+<p>系统使用 tower-http <code>TraceLayer</code> 记录 HTTP 请求/响应 span。</p>
+<ul>
+<li>以 <code>-v</code> 启动且未设置 <code>RUST_LOG</code> 时，日志级别为 debug。</li>
+<li>设置 <code>RUST_LOG=error</code> 时，即使传 <code>-v</code>，实际日志过滤仍为 <code>error</code>。</li>
+</ul>
+<h3 id="13">1.3 服务启动与监听<a class="headerlink" href="#13" title="Permanent link">&para;</a></h3>
+<p>启动时系统：</p>
+<ol>
+<li>解析并固定全局配置（OnceLock），打印版本号与配置摘要日志；</li>
+<li>校验模板文件 <code>&lt;TEMPLATE_DIR&gt;/index.html</code> 是否存在，缺失时记录 warn 并提示使用内置回退页；</li>
+<li>绑定 <code>host:port</code>，host 非法或绑定失败时打印 error 日志并以非零退出码退出；</li>
+<li>
+<p>启动成功后打印监听地址与 Web 界面访问地址（host 为 <code>0.0.0.0</code> 时显示 <code>localhost</code>）。</p>
+</li>
+<li>
+<p>端口被占用时：打印 error 日志并以非零退出码退出。</p>
+</li>
+<li>默认配置启动成功：日志显示 <code>Server listening on 0.0.0.0:3000</code> 及 <code>http://localhost:3000</code>。</li>
+</ol>
+<hr />
+<h2 id="2-url">2. 入口路由与 URL 解析<a class="headerlink" href="#2-url" title="Permanent link">&para;</a></h2>
+<h3 id="21">2.1 入口路径解析与请求路由<a class="headerlink" href="#21" title="Permanent link">&para;</a></h3>
+<p>系统以 fallback 路由接收所有 HTTP 请求，按以下优先级解析：</p>
+<ol>
+<li>路径 <code>/</code> → 返回首页（见 4.1）；</li>
+<li>路径 <code>/favicon.ico</code> → 返回 favicon 响应（见 4.2）；</li>
+<li>路径 <code>/robots.txt</code> → 返回 robots 响应（见 4.2）；</li>
+<li>
+<p>其余路径 → 视为待代理的目标 URL，进入代理流程。</p>
+</li>
+<li>
+<p>请求 <code>/</code> 返回首页 HTML，不触发代理逻辑。</p>
+</li>
+<li><code>/favicon.ico</code>、<code>/robots.txt</code> 即使形式上可解析为域名，也优先走内置响应。</li>
+<li>请求 <code>/https://example.com/file.zip?x=1</code> 时，取去除前导 <code>/</code> 后的路径作为目标 URL，并将原始查询串以 <code>?</code> 追加。</li>
+</ol>
+<h3 id="22-url">2.2 目标 URL 协议修复与补全<a class="headerlink" href="#22-url" title="Permanent link">&para;</a></h3>
+<p>对提取出的目标字符串依次做规范化处理：</p>
+<ol>
+<li><strong>URL 解码</strong>（仅解码路径部分，单层解码、不递归；失败时使用原始值）——解码必须先于协议修复执行，且「先解码、后请求」保证等价性（见下）；</li>
+<li><strong>修复协议变形</strong>（某些客户端的转义结果）：</li>
+<li><code>http:/http://</code>、<code>https:/https://</code> → 还原为 <code>http://</code>、<code>https://</code></li>
+<li><code>http:/</code>、<code>https:/</code>（单斜杠）→ 补全为 <code>http://</code>、<code>https://</code></li>
+<li>处理后以 <code>http://</code> 或 <code>https://</code> 开头 → 直接作为完整目标 URL；</li>
+<li>否则若请求带 <strong>Referer</strong> → 以 Referer 的 <code>scheme://host</code> 为前缀拼接（<code>{scheme}://{host}/{path}</code>）；</li>
+<li>否则取首个 <code>/</code> 之前的部分，若其为有效域名（可解析且 host 含 <code>.</code>）→ 补全 <code>https://</code> 前缀；</li>
+<li>以上均不满足 → 返回 <code>400 Bad Request</code>，响应体 <code>Invalid URL</code>。</li>
+</ol>
+<p><strong>「先解码、后请求」等价性约束</strong>：</p>
+<ul>
+<li>百分号编码形式的目标 URL（如 <code>/https%3A%2F%2Fcdn.example.com%2Fa.JPG</code>）在解码后发起的上游请求，必须与未编码形式（<code>/https://cdn.example.com/a.JPG</code>）逐字符一致（上游 URL、路径相同，上游返回相同状态码与响应）；</li>
+<li>查询串原样透传、不重复解码（如 <code>?name=a%2Bb</code> 上游收到的仍是 <code>?name=a%2Bb</code>）；</li>
+<li>仅解码一层，不递归解码二次编码形式（如 <code>%253A</code> 只解码为 <code>%3A</code>）。</li>
+</ul>
+<p>示例：</p>
+<table>
+<thead>
+<tr>
+<th>输入目标</th>
+<th>条件</th>
+<th>代理目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https:/github.com/a/b</code></td>
+<td>—</td>
+<td><code>https://github.com/a/b</code></td>
+</tr>
+<tr>
+<td><code>https:/https://example.com/f</code></td>
+<td>—</td>
+<td><code>https://example.com/f</code></td>
+</tr>
+<tr>
+<td><code>https%3A%2F%2Fexample.com%2Ff</code></td>
+<td>—</td>
+<td><code>https://example.com/f</code>（与未编码形式一致）</td>
+</tr>
+<tr>
+<td><code>example.com/file.zip</code></td>
+<td>无 Referer</td>
+<td><code>https://example.com/file.zip</code></td>
+</tr>
+<tr>
+<td><code>a/b</code></td>
+<td>Referer 为 <code>https://ref.example.com/page</code></td>
+<td><code>https://ref.example.com/a/b</code></td>
+</tr>
+<tr>
+<td><code>noturl</code></td>
+<td>无协议、首段非域名、无 Referer</td>
+<td>400 <code>Invalid URL</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3">3. 反向代理转发<a class="headerlink" href="#3" title="Permanent link">&para;</a></h2>
+<h3 id="31-options">3.1 方法白名单与 OPTIONS 处理<a class="headerlink" href="#31-options" title="Permanent link">&para;</a></h3>
+<ul>
+<li>仅允许 <code>GET</code>、<code>HEAD</code>、<code>POST</code> 发起代理转发；其他方法返回 <code>405 Method Not Allowed</code>（响应体 <code>Method Not Allowed</code>），不发起任何上游请求。</li>
+<li><code>OPTIONS</code> 请求不进入代理转发，由系统直接处理：</li>
+<li>同时带 <code>Origin</code>、<code>Access-Control-Request-Method</code>、<code>Access-Control-Request-Headers</code> 时视为 <strong>CORS 预检</strong>：返回 200 与统一 CORS 头，<code>Access-Control-Allow-Headers</code> 回显请求中的 <code>Access-Control-Request-Headers</code> 值；</li>
+<li>否则视为<strong>普通 OPTIONS</strong>：返回 200 与统一 CORS 头，并附 <code>Allow: GET, HEAD, POST, OPTIONS</code>。</li>
+</ul>
+<p>统一 CORS 头：</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Access-Control-Allow-Origin: *
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Access-Control-Allow-Methods: GET,HEAD,POST,OPTIONS
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Access-Control-Max-Age: 86400
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Access-Control-Expose-Headers: *
+</span></code></pre></div>
+<h3 id="32">3.2 上游请求构造<a class="headerlink" href="#32" title="Permanent link">&para;</a></h3>
+<ul>
+<li>使用独立配置的 reqwest 客户端：固定 UA（<code>--user-agent</code>）、连接超时 15s、总超时 60s、<strong>禁用自动重定向</strong>（由服务端代答）；</li>
+<li>配置了上游代理（<code>--proxy</code> / <code>PROXY</code>，支持 <code>http://</code>、<code>https://</code>、<code>socks5://</code>）时，所有上游请求（含 Git 端点专用客户端）SHALL 经该代理转发；代理地址非法时记录 warn 并忽略代理（直连）；</li>
+<li>复制客户端请求头，但过滤：</li>
+<li>逐跳首部：<code>connection</code>、<code>keep-alive</code>、<code>proxy-authenticate</code>、<code>proxy-authorization</code>、<code>te</code>、<code>trailer</code>、<code>transfer-encoding</code>、<code>upgrade</code>；</li>
+<li><code>Content-Length</code>；</li>
+<li><code>HOST</code> 头改写为最终目标 URL 的 host（如客户端请求 <code>proxy.local</code>、目标 <code>https://example.com/f</code>，上游 HOST 为 <code>example.com</code>）。</li>
+</ul>
+<h3 id="33">3.3 重定向手动跟随<a class="headerlink" href="#33" title="Permanent link">&para;</a></h3>
+<p>上游返回 3xx 且带 <code>Location</code> 头时，系统手动跟随重定向：</p>
+<ul>
+<li><code>Location</code> 为绝对 URL → 直接使用；</li>
+<li>为相对路径 → 基于原目标 URL 解析（<code>Url::join</code>），解析失败时退化为字符串拼接（原 URL 去尾斜杠 + Location）；</li>
+<li>301/302/303 → 以 <code>GET</code> 方法、空请求头跟随；</li>
+<li>307/308 → 保留原 HTTP 方法与原请求头跟随（含 <code>Content-Type</code>、<code>Authorization</code>），使带请求体的 POST（如 git <code>git-upload-pack</code>）在重定向后仍语义完整；</li>
+<li>客户端禁用自动重定向由服务端代答（Git 端点由专用客户端的重定向策略代答）。</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>302 + <code>Location: https://cdn.example.com/f.zip</code></td>
+<td>以 GET 请求该地址并向客户端返回其响应</td>
+</tr>
+<tr>
+<td>目标 <code>https://a.example.com/d/x</code> 返回 302 + <code>Location: /files/y</code></td>
+<td>跟随 <code>https://a.example.com/files/y</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="34">3.4 流式响应与响应头处理<a class="headerlink" href="#34" title="Permanent link">&para;</a></h3>
+<ul>
+<li>上游响应体以<strong>流式</strong>（<code>bytes_stream</code>）透传给客户端，状态码透传；</li>
+<li>复制响应头（存在时）：<code>Content-Type</code>、<code>Content-Length</code>、<code>Content-Disposition</code>、<code>Content-Encoding</code>；</li>
+<li>附加统一 CORS 头；</li>
+<li>删除安全相关头：<code>Set-Cookie</code>、<code>Content-Security-Policy</code>、<code>Content-Security-Policy-Report-Only</code>、<code>Clear-Site-Data</code>；</li>
+<li>上游请求失败（超时/拒绝）→ 返回 <code>500</code>，响应体 <code>Failed to send request</code>。</li>
+</ul>
+<h3 id="35-github">3.5 GitHub 加速规则<a class="headerlink" href="#35-github" title="Permanent link">&para;</a></h3>
+<p>在发起代理请求前，对目标 URL 应用以下 GitHub 匹配规则：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>匹配格式</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>releases/archive</td>
+<td><code>github.com/&lt;owner&gt;/&lt;repo&gt;/(releases\|archive)/...</code></td>
+<td>直接转发</td>
+</tr>
+<tr>
+<td>blob/raw</td>
+<td><code>github.com/&lt;owner&gt;/&lt;repo&gt;/(blob\|raw)/...</code></td>
+<td>将 <code>/blob/</code> 替换为 <code>/raw/</code> 后转发</td>
+</tr>
+<tr>
+<td>info/git-</td>
+<td><code>github.com/&lt;owner&gt;/&lt;repo&gt;/(info\|git-)...</code></td>
+<td>直接转发</td>
+</tr>
+<tr>
+<td>raw 内容</td>
+<td><code>raw.(githubusercontent\|github).com/&lt;owner&gt;/&lt;repo&gt;/&lt;branch&gt;/&lt;path&gt;</code></td>
+<td>直接转发</td>
+</tr>
+<tr>
+<td>gist</td>
+<td><code>gist.(githubusercontent\|github).com/&lt;user&gt;/&lt;gist-id&gt;/&lt;ref&gt;</code></td>
+<td>直接转发</td>
+</tr>
+<tr>
+<td>tags</td>
+<td><code>github.com/&lt;owner&gt;/&lt;repo&gt;/tags...</code></td>
+<td>直接转发</td>
+</tr>
+</tbody>
+</table>
+<p>（以上均允许带或不带 <code>https?://</code> 前缀。）</p>
+<ul>
+<li>示例：<code>https://github.com/o/r/blob/main/f.txt</code> → 代理 <code>https://github.com/o/r/raw/main/f.txt</code>；<code>raw</code> URL 保持不变；非 GitHub URL 按原 URL 代理。</li>
+</ul>
+<h3 id="36-github-api-token">3.6 GitHub API Token 注入<a class="headerlink" href="#36-github-api-token" title="Permanent link">&para;</a></h3>
+<ul>
+<li>目标 URL 的 host 为 <code>api.github.com</code>，且环境变量 <code>GITHUB_TOKEN</code> 存在且非空时，向上游请求添加 <code>Authorization: Bearer &lt;GITHUB_TOKEN&gt;</code>；</li>
+<li>其他目标不注入该头（即使 <code>GITHUB_TOKEN</code> 已设置）。</li>
+</ul>
+<h3 id="37-git-http">3.7 Git 智能 HTTP 代理<a class="headerlink" href="#37-git-http" title="Permanent link">&para;</a></h3>
+<p>系统识别 Git 智能 HTTP 协议端点并按 git 语义代理，支持 <code>git clone http://&lt;proxy&gt;/&lt;git-url&gt;</code>：</p>
+<ul>
+<li><strong>端点识别</strong>（URL 解码后判断，编码形式同样命中）：</li>
+<li>GET <code>*/info/refs?service=git-upload-pack|git-receive-pack|git-upload-archive</code>（协议握手）；</li>
+<li>POST <code>*/git-upload-pack|git-receive-pack|git-upload-archive</code>（数据传输）；</li>
+<li><strong>双向流式透传</strong>：POST 请求体转发给上游，响应体流式返回，<code>Content-Type</code>（如 <code>application/x-git-upload-pack-request</code>）原样透传；</li>
+<li><strong>专用客户端</strong>：Git 端点使用独立上游客户端——连接超时 15 秒、<strong>无总超时</strong>（大仓库长时流式传输不被截断）；自定义重定向策略（最多 5 次，307/308 保留方法与请求头、301/302/303 转 GET）；</li>
+<li><strong>非 git 端点行为不变</strong>：仍使用原客户端（60 秒总超时、手动重定向跟随）。</li>
+</ul>
+<p>示例：</p>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>git clone http://localhost:3000/https://atomgit.com/jetsung/sh.git</code></td>
+<td>克隆完整成功</td>
+</tr>
+<tr>
+<td><code>git clone http://localhost:3000/https%3A%2F%2Fatomgit.com%2Fjetsung%2Fsh.git</code></td>
+<td>编码形式同样克隆成功</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-web">4. Web 界面与站点元数据<a class="headerlink" href="#4-web" title="Permanent link">&para;</a></h2>
+<h3 id="41">4.1 首页模板渲染<a class="headerlink" href="#41" title="Permanent link">&para;</a></h3>
+<ul>
+<li>优先读取 <code>&lt;TEMPLATE_DIR&gt;/index.html</code> 模板，将其中 <code>{{ title }}</code> 占位符替换为配置的标题（TITLE）；</li>
+<li>模板读取失败时回退到内置回退页（同样做 <code>{{ title }}</code> 替换），并记录 warn 日志，服务不报错。</li>
+</ul>
+<h3 id="42-favicon-robotstxt">4.2 favicon 与 robots.txt<a class="headerlink" href="#42-favicon-robotstxt" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>/favicon.ico</code> → 返回 <code>204 No Content</code>；</li>
+<li><code>/robots.txt</code> → 返回 <code>200</code>，<code>Content-Type: text/plain</code>，响应体：</li>
+</ul>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>User-agent:*
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Disallow:/
+</span></code></pre></div>
+<hr />
+<h2 id="5">5. 部署与运行<a class="headerlink" href="#5" title="Permanent link">&para;</a></h2>
+<ul>
+<li>开发运行：<code>cargo run</code>；</li>
+<li>生产构建：<code>cargo build --release</code> 后运行 <code>./target/release/filetas</code>；</li>
+<li>TLS 后端使用 rustls（纯 Rust 实现，reqwest <code>rustls</code> 特性，另启用 <code>socks</code> 支持 socks5 上游代理），无需安装 OpenSSL / <code>libssl-dev</code>，仅需 Rust 工具链（<a href="https://rustup.rs">https://rustup.rs</a>）；</li>
+<li>提供 Docker 镜像，支持 amd64/arm64 多平台部署（见 <code>docker/</code> 目录）；</li>
+<li>可通过 <code>GITHUB_TOKEN</code> 环境变量进行 GitHub API 身份验证，避免速率限制。</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="./.." class="md-footer__link md-footer__link--prev" aria-label="Previous: 首页">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                首页
+              </div>
+            </div>
+          </a>
+        
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Jetsung Chan
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.instant","navigation.instant.prefetch","navigation.path","navigation.sections","navigation.top","navigation.tracking","search.highlight"],"redirect":null,"search":"../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c04ba553.min.js"></script>
+      
+    
+  </body>
+</html>
