@@ -12,6 +12,6 @@ WORKDIR /app
 COPY --from=builder /usr/local/cargo/bin/filetas /usr/local/bin/filetas
 COPY --from=builder /app/templates /app/templates
 
-EXPOSE 8000
+EXPOSE 3000
 
 ENTRYPOINT ["filetas"]

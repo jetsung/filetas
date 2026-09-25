@@ -1,20 +1,67 @@
 [package]
 name = "filetas"
-version = "0.3.2"
+version = "0.4.1"
 edition = "2024"
+description = "基于 Rust + Axum 的高性能文件加速下载服务"
+license = "Apache-2.0"
+authors = ["Jetsung Chan <i@jetsung.com>"]
+repository = "https://github.com/jetsung/filetas"
+homepage = "https://github.com/jetsung/filetas"
+documentation = "https://docs.rs/filetas"
+readme = "README.md"
+keywords = ["proxy", "download", "github", "accelerator", "axum"]
+categories = [
+  "command-line-utilities",
+  "network-programming",
+  "web-programming::http-server",
+]
+exclude = [
+  "/.github/",
+  "/.cache/",
+  "/docs/",
+  "/docker/",
+  "/site/",
+  "/justfile",
+  "/prek.toml",
+  "/zensical.toml",
+]
+
+[[bin]]
+name = "filetas"
+path = "src/main.rs"
+
+[package.metadata.deb]
+maintainer = "Jetsung Chan <i@jetsung.com>"
+assets = [
+  # [源路径, 目标路径, 权限]
+  ["target/release/filetas", "usr/bin/filetas", "755"],
+  ["templates/index.html", "usr/share/filetas/templates/index.html", "644"],
+]
+
+[package.metadata.generate-rpm]
+maintainer = "Jetsung Chan <i@jetsung.com>"
+assets = [
+  # [源路径, 目标路径, 权限]
+  { source = "target/release/filetas", dest = "/usr/bin/filetas", mode = "755" },
+  { source = "templates/index.html", dest = "/usr/share/filetas/templates/index.html", mode = "644" },
+]
 
 [dependencies]
-axum = "0.8"                                                      # 用于 Web 服务
-tokio = { version = "1.47", features = ["full"] }                 # 异步运行时
-url = "2.5"                                                       # URL 解析
-tokio-util = "0.7"                                               # 用于流式响应clear
-regex = "1.12"
+axum = "0.8" # 用于 Web 服务
+tokio = { version = "1.53", features = ["full"] } # 异步运行时
+url = "2.5" # URL 解析
+tokio-util = "0.7" # 用于流式响应clear
+regex = "1.13"
 hyper-util = { version = "0.1", features = ["full"] }
-reqwest = { version = "0.12", features = ["stream"] }            # HTTP 客户端
+reqwest = { version = "0.13", default-features = false, features = [
+  "stream",
+  "rustls",
+  "socks",
+] } # HTTP 客户端（rustls TLS，支持 socks5 代理）
 serde = { version = "1.0", features = ["derive"] }
 urlencoding = "2.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower = "0.5"
-tower-http = { version = "0.6", features = ["trace"] }
-clap = { version = "4.5", features = ["derive", "env"] }
+tower-http = { version = "0.7", features = ["trace"] }
+clap = { version = "4.6", features = ["derive", "env"] }

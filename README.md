@@ -7,36 +7,32 @@
 - **高性能**: 基于 Rust 和 Axum 框架，提供极致性能。
 - **GitHub 加速**: 自动识别并加速 GitHub 文件下载。
 - **GitHub API 支持**: 支持通过 `GITHUB_TOKEN` 环境变量进行身份验证，避免 API 速率限制。
-- **智能重定向**: 自动处理 HTTP 重定向和 URL 转换。
+- **Git clone 加速**: 支持 Git 智能 HTTP 协议代理，`git clone` 经代理拉取仓库。
+- **上游代理**: 支持 `--proxy` 配置 http/https/socks5 上游代理。
+- **智能重定向**: 自动处理 HTTP 重定向和 URL 转换（307/308 保留方法与请求头）。
 - **CORS 支持**: 完整的跨域资源共享支持。
-- **多种访问方式**: 支持带协议头（`https://...`）、不带协议头（`github.com/...`）或单斜杠（`https:/github.com/...`）的代理请求。
+- **多种访问方式**: 支持带协议头（`https://...`）、不带协议头（`github.com/...`）、单斜杠或百分号编码形式的代理请求。
+- **纯 Rust TLS**: 使用 rustls，无需安装 OpenSSL。
 - **现代界面**: 蓝色渐变设计的现代化 Web 界面。
 - **详细日志**: 结构化日志记录，支持多级别日志输出。
 - **灵活配置**: 支持命令行参数和环境变量配置。
+- **deb/rpm 打包**: 内置 cargo-deb / cargo-generate-rpm 配置，CI 自动发布。
 - **容器化**: 提供 Docker 镜像，支持 amd64/arm64 多平台部署。
 
 ## 快速开始
 
 ### 先决条件
 
-```bash
-# Ubuntu/Debian
-sudo apt update -y
-sudo apt install -y pkg-config libssl-dev
+TLS 后端使用 rustls（纯 Rust 实现），无需安装 OpenSSL。
 
-# CentOS/RHEL
-sudo yum install -y pkgconfig openssl-devel
-
-# macOS
-brew install pkg-config openssl
-```
+- Rust 工具链（含 cargo）：https://rustup.rs
 
 ### 安装运行
 
 1. **下载源码**
 
 ```bash
-git clone https://github.com/idevsig/filetas.git
+git clone https://github.com/jetsung/filetas.git
 cd filetas
 ```
 
@@ -62,10 +58,11 @@ filetas [OPTIONS]
 
 选项:
   -H, --host <HOST>              服务器监听地址 [默认: 0.0.0.0] [环境变量: HOST]
-  -p, --port <PORT>              服务器端口 [默认: 8000] [环境变量: PORT]
+  -p, --port <PORT>              服务器端口 [默认: 3000] [环境变量: PORT]
   -t, --title <TITLE>            页面标题 [默认: 文件加速下载] [环境变量: TITLE]
       --template-dir <DIR>       模板目录路径 [默认: templates] [环境变量: TEMPLATE_DIR]
       --user-agent <USER_AGENT>  请求用户代理 [环境变量: USER_AGENT]
+      --proxy <PROXY>       上游代理地址 (http/https/socks5) [环境变量: PROXY]
   -v, --verbose                  启用详细日志 (等同于 RUST_LOG=debug)
   -q, --quiet                    启用安静模式 (等同于 RUST_LOG=warn)
   -h, --help                     显示帮助信息
@@ -96,15 +93,16 @@ RUST_LOG=debug filetas --port 8080 --title "开发服务器"
 
 ### 环境变量
 
-| 变量名         | 描述                                     | 默认值                         |
-| -------------- | ---------------------------------------- | ------------------------------ |
-| `HOST`         | 服务器监听地址                           | `0.0.0.0`                      |
-| `PORT`         | 服务器端口                               | `8000`                         |
-| `TITLE`        | 页面标题                                 | `文件加速下载`                 |
-| `TEMPLATE_DIR` | 模板目录路径                             | `templates`                    |
-| `USER_AGENT`   | 请求用户代理                             | `Mozilla/5.0 ...`              |
-| `GITHUB_TOKEN` | GitHub 个人访问令牌（用于 API 加速）     | (无)                           |
-| `RUST_LOG`     | 日志级别                                 | `filetas=info,tower_http=info` |
+| 变量名         | 描述                                 | 默认值                         |
+| -------------- | ------------------------------------ | ------------------------------ |
+| `HOST`         | 服务器监听地址                       | `0.0.0.0`                      |
+| `PORT`         | 服务器端口                           | `3000`                         |
+| `TITLE`        | 页面标题                             | `文件加速下载`                 |
+| `TEMPLATE_DIR` | 模板目录路径                         | `templates`                    |
+| `USER_AGENT`   | 请求用户代理                         | `Mozilla/5.0 ...`              |
+| `PROXY`        | 上游代理地址（http/https/socks5）    | （空，不使用代理）             |
+| `GITHUB_TOKEN` | GitHub 个人访问令牌（用于 API 加速） | (无)                           |
+| `RUST_LOG`     | 日志级别                             | `filetas=info,tower_http=info` |
 
 ### 日志配置
 
@@ -140,9 +138,23 @@ RUST_LOG=filetas=trace,tower_http=debug filetas
 ### 多种请求方式示例
 
 服务支持非常灵活的 URL 格式，会自动识别并补全：
-- `http://localhost:8000/https://github.com/user/repo/archive/main.zip` (完整 URL)
-- `http://localhost:8000/github.com/user/repo/archive/main.zip` (自动补全 https)
-- `http://localhost:8000/https:/github.com/user/repo/archive/main.zip` (修正单斜杠)
+
+- `http://localhost:3000/https://github.com/user/repo/archive/main.zip` (完整 URL)
+- `http://localhost:3000/github.com/user/repo/archive/main.zip` (自动补全 https)
+- `http://localhost:3000/https:/github.com/user/repo/archive/main.zip` (修正单斜杠)
+- `http://localhost:3000/https%3A%2F%2Fgithub.com%2Fuser%2Frepo%2Farchive%2Fmain.zip` (百分号编码，与未编码形式等价)
+
+### Git clone 加速
+
+```bash
+# 原始 URL
+git clone http://localhost:3000/https://atomgit.com/jetsung/sh.git
+
+# 编码 URL（等价）
+git clone http://localhost:3000/https%3A%2F%2Fatomgit.com%2Fjetsung%2Fsh.git
+```
+
+支持 Git 智能 HTTP 协议（`info/refs` 握手与 `git-upload-pack` 等数据端点），大仓库长时传输无总超时限制。
 
 ### 通用文件下载
 
@@ -152,7 +164,7 @@ RUST_LOG=filetas=trace,tower_http=debug filetas
 
 ## Web 界面使用
 
-1. 访问 `http://localhost:8000`
+1. 访问 `http://localhost:3000`
 2. 在输入框中粘贴文件 URL
 3. 点击下载按钮或按回车键
 4. 文件将通过加速服务下载
@@ -165,28 +177,28 @@ RUST_LOG=filetas=trace,tower_http=debug filetas
 
 | 镜像仓库                  | 镜像地址                                                    | 说明              |
 | ------------------------- | ----------------------------------------------------------- | ----------------- |
-| Docker Hub                | `idevsig/filetas:latest`                                    | 官方镜像仓库      |
-| GitHub Container Registry | `ghcr.io/idevsig/filetas:latest`                           | GitHub 容器注册表 |
-| 阿里云容器镜像服务        | `registry.cn-guangzhou.aliyuncs.com/idevsig/filetas:latest` | 阿里云镜像        |
-| 腾讯云容器镜像服务        | `sgccr.ccs.tencentyun.com/idevsig/filetas:latest`           | 腾讯云镜像        |
+| Docker Hub                | `jetsung/filetas:latest`                                    | 官方镜像仓库      |
+| GitHub Container Registry | `ghcr.io/jetsung/filetas:latest`                            | GitHub 容器注册表 |
+| 阿里云容器镜像服务        | `registry.cn-guangzhou.aliyuncs.com/jetsung/filetas:latest` | 阿里云镜像        |
+| 腾讯云容器镜像服务        | `sgccr.ccs.tencentyun.com/jetsung/filetas:latest`           | 腾讯云镜像        |
 
 #### 运行示例
 
 ```bash
 # Docker Hub
-docker run -p 8000:8000 -d idevsig/filetas:latest
+docker run -p 3000:3000 -d jetsung/filetas:latest
 
 # GitHub Registry
-docker run -p 8000:8000 -d ghcr.io/idevsig/filetas:latest
+docker run -p 3000:3000 -d ghcr.io/jetsung/filetas:latest
 
 # 阿里云镜像（国内用户推荐）
-docker run -p 8000:8000 -d registry.cn-guangzhou.aliyuncs.com/idevsig/filetas:latest
+docker run -p 3000:3000 -d registry.cn-guangzhou.aliyuncs.com/jetsung/filetas:latest
 
 # 腾讯云镜像
-docker run -p 8000:8000 -d sgccr.ccs.tencentyun.com/idevsig/filetas:latest
+docker run -p 3000:3000 -d sgccr.ccs.tencentyun.com/jetsung/filetas:latest
 
 # 使用 GITHUB_TOKEN
-docker run -p 8000:8000 -e GITHUB_TOKEN=your_token -d idevsig/filetas:latest
+docker run -p 3000:3000 -e GITHUB_TOKEN=your_token -d jetsung/filetas:latest
 ```
 
 ### Docker Compose
@@ -194,14 +206,14 @@ docker run -p 8000:8000 -e GITHUB_TOKEN=your_token -d idevsig/filetas:latest
 ```yaml
 services:
   filetas:
-    image: idevsig/filetas:latest
+    image: jetsung/filetas:latest
     container_name: filetas
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "3000:3000"
     environment:
       - HOST=0.0.0.0
-      - PORT=8000
+      - PORT=3000
       - TITLE=文件加速下载
       - GITHUB_TOKEN=your_token_here
       - RUST_LOG=filetas=info
@@ -216,7 +228,7 @@ services:
 docker build -f docker/Dockerfile -t my-filetas .
 
 # 运行
-docker run -p 8000:8000 -d my-filetas
+docker run -p 3000:3000 -d my-filetas
 ```
 
 ## API 使用
@@ -225,10 +237,10 @@ docker run -p 8000:8000 -d my-filetas
 
 ```bash
 # 通过服务下载文件
-curl -L "http://localhost:8000/https://example.com/file.zip" -o file.zip
+curl -L "http://localhost:3000/https://example.com/file.zip" -o file.zip
 
 # GitHub 文件加速
-curl -L "http://localhost:8000/https://github.com/user/repo/releases/download/v1.0.0/file.zip" -o file.zip
+curl -L "http://localhost:3000/https://github.com/user/repo/releases/download/v1.0.0/file.zip" -o file.zip
 ```
 
 ### CORS 支持
@@ -237,13 +249,13 @@ curl -L "http://localhost:8000/https://github.com/user/repo/releases/download/v1
 
 ```javascript
 // 获取文件
-fetch("http://localhost:8000/https://example.com/file.json")
+fetch("http://localhost:3000/https://example.com/file.json")
   .then((response) => response.json())
   .then((data) => console.log(data));
 
 // 下载文件
 const downloadUrl =
-  "http://localhost:8000/" + encodeURIComponent("https://example.com/file.zip");
+  "http://localhost:3000/" + encodeURIComponent("https://example.com/file.zip");
 window.open(downloadUrl);
 ```
 
@@ -269,10 +281,19 @@ filetas/
 
 ```bash
 # 克隆项目
-git clone https://github.com/idevsig/filetas.git
+git clone https://github.com/jetsung/filetas.git
 cd filetas
 
-# 安装依赖并运行
+# 使用 justfile（推荐）
+just run          # 开发运行
+just build        # 开发构建
+just build-release  # 生产构建
+just build-deb    # 构建 deb 包
+just build-rpm    # 构建 rpm 包
+just build-docker # 本地 Docker 镜像
+just check        # 编译检查 + clippy + 格式检查
+
+# 或直接使用 cargo
 cargo run
 
 # 开启详细日志的开发模式
@@ -286,6 +307,34 @@ cargo fmt
 
 # 代码检查
 cargo clippy
+```
+
+### Git 钩子（prek）
+
+项目使用 [prek](https://github.com/j178/prek) 管理提交钩子，`prek run` 会自动修复格式（rustfmt / taplo / prettier）：
+
+```bash
+prek install      # 安装钩子
+prek run --all-files  # 手动运行（自动修复格式）
+```
+
+### 项目结构
+
+```
+filetas/
+├── docker/
+│   ├── Dockerfile              # Docker 构建文件
+│   └── docker-bake.hcl         # Docker Bake 构建配置
+├── docs/                       # 文档站点（zensical）
+├── src/
+│   └── main.rs                 # 主程序
+├── templates/
+│   └── index.html              # Web 界面模板
+├── justfile                    # 构建与运行脚本
+├── prek.toml                   # Git 钩子配置
+├── Cargo.toml                  # 项目配置（含 deb/rpm 打包元数据）
+├── Cargo.lock                  # 依赖锁定文件
+└── README.md
 ```
 
 ## 性能优化
@@ -309,10 +358,7 @@ cargo clippy
    filetas --template-dir /path/to/templates
    ```
 3. **SSL/TLS 错误**
-   ```bash
-   # 确保安装了 OpenSSL 开发包
-   sudo apt install libssl-dev pkg-config
-   ```
+   项目使用纯 Rust 的 rustls，无需系统 OpenSSL；若遇到证书问题，检查系统根证书是否齐全。
 
 ## 贡献
 
@@ -324,5 +370,4 @@ cargo clippy
 
 ## 仓库镜像
 
-[MyCode](https://git.jetsung.com/idev/filetas) ● [AtomGit](https://atomgit.com/idev/filetas) ● [GitHub](https://github.com/idevsig/filetas)
-
+[MyCode](https://git.jetsung.com/jetsung/filetas) ● [AtomGit](https://atomgit.com/jetsung/filetas) ● [GitHub](https://github.com/jetsung/filetas)

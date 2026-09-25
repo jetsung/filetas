@@ -1,13 +1,13 @@
-name: Docker-Dev
+name: Docker Dev
 
 on:
   push:
     branches:
       - dev*
     paths:
+      - "src/**"
       - "docker/Dockerfile"
       - ".github/workflows/docker-dev.yml"
-      - "src/**"
 
 env:
   GHCR_SLUG: ghcr.io/${{ github.repository }}
@@ -107,6 +107,6 @@ jobs:
         continue-on-error: true
         with:
           package-name: ${{ needs.build.outputs.package_name }}
-          package-type: 'container'
+          package-type: "container"
           min-versions-to-keep: 2
-          delete-only-untagged-versions: 'true'
+          delete-only-untagged-versions: "true"

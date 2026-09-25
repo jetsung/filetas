@@ -43,7 +43,7 @@ struct Args {
     host: String,
 
     /// Server port
-    #[arg(short, long, env = "PORT", default_value = "8000")]
+    #[arg(short, long, env = "PORT", default_value = "3000")]
     port: u16,
 
     /// Page title
@@ -69,6 +69,10 @@ struct Args {
     /// Enable quiet mode (equivalent to RUST_LOG=warn)
     #[arg(short, long)]
     quiet: bool,
+
+    /// Upstream proxy URL (http://, https:// or socks5://)
+    #[arg(long, env = "PROXY")]
+    proxy: Option<String>,
 }
 
 // GitHub URL 匹配模式
@@ -118,6 +122,25 @@ fn is_domain(url: &str) -> bool {
         }
     }
     false
+}
+
+// 判断是否为 Git 智能 HTTP 端点（info/refs 握手或 upload-pack/receive-pack/upload-archive 数据端点）
+fn is_git_endpoint(url: &str) -> bool {
+    let Ok(parsed) = Url::parse(url) else {
+        return false;
+    };
+    let path = parsed.path();
+    let git_services = ["git-upload-pack", "git-receive-pack", "git-upload-archive"];
+
+    if path.ends_with("/info/refs") {
+        // 握手端点须带 service=git-* 查询参数
+        return parsed
+            .query_pairs()
+            .any(|(k, v)| k == "service" && git_services.contains(&v.as_ref()));
+    }
+    git_services
+        .iter()
+        .any(|svc| path.ends_with(&format!("/{}", svc)))
 }
 
 // 处理 OPTIONS 请求
@@ -200,6 +223,7 @@ use std::sync::OnceLock;
 // 全局配置
 static CONFIG: OnceLock<Args> = OnceLock::new();
 static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+static GIT_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 fn get_config() -> &'static Args {
     CONFIG.get().unwrap()
@@ -208,14 +232,51 @@ fn get_config() -> &'static Args {
 fn get_client() -> &'static reqwest::Client {
     CLIENT.get_or_init(|| {
         let config = get_config();
-        reqwest::Client::builder()
+        let mut builder = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
             .user_agent(&config.user_agent)
             .connect_timeout(std::time::Duration::from_secs(15))
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .unwrap()
+            .timeout(std::time::Duration::from_secs(60));
+        builder = apply_proxy(builder);
+        builder.build().unwrap()
     })
+}
+
+fn get_git_client() -> &'static reqwest::Client {
+    GIT_CLIENT.get_or_init(|| {
+        let config = get_config();
+        // Git 端点专用客户端：无总超时（大仓库长时流式传输）；自定义重定向策略仅限制次数，
+        // 方法语义由 reqwest 内建处理（307/308 保留原方法与请求头，301/302/303 转 GET）
+        let mut builder = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                if attempt.previous().len() >= 5 {
+                    attempt.stop()
+                } else {
+                    attempt.follow()
+                }
+            }))
+            .user_agent(&config.user_agent)
+            .connect_timeout(std::time::Duration::from_secs(15));
+        builder = apply_proxy(builder);
+        builder.build().unwrap()
+    })
+}
+
+// 为客户端应用 --proxy / PROXY 上游代理（支持 http://、https://、socks5://）
+fn apply_proxy(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    match get_config().proxy.as_deref() {
+        Some(url) if !url.is_empty() => match reqwest::Proxy::all(url) {
+            Ok(proxy) => {
+                info!("Using upstream proxy: {}", url);
+                builder.proxy(proxy)
+            }
+            Err(e) => {
+                warn!("Invalid proxy URL '{}': {}, ignoring proxy", url, e);
+                builder
+            }
+        },
+        _ => builder,
+    }
 }
 
 // 需要过滤的逐跳首部（hop-by-hop headers）
@@ -269,7 +330,10 @@ async fn handler_index() -> Html<String> {
     let config = get_config();
     let template_path = format!("{}/index.html", config.template_dir);
     let html_content = std::fs::read_to_string(&template_path).unwrap_or_else(|e| {
-        warn!("Failed to load {}: {}, using built-in fallback page", template_path, e);
+        warn!(
+            "Failed to load {}: {}, using built-in fallback page",
+            template_path, e
+        );
         FALLBACK_HTML.to_string()
     });
 
@@ -293,16 +357,23 @@ async fn proxy_request(
     url: &str,
     method: reqwest::Method,
     headers: HeaderMap,
+    body: Option<reqwest::Body>,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let start_time = Instant::now();
     debug!("Sending {} request to: {}", method, url);
 
-    let client = get_client();
-    let response = client
-        .request(method.clone(), url)
-        .headers(headers)
-        .send()
-        .await?;
+    // Git 智能 HTTP 端点使用专用客户端（无总超时；自动跟随重定向且 307/308 保留方法与请求头）
+    let is_git = is_git_endpoint(url);
+    let client = if is_git {
+        get_git_client()
+    } else {
+        get_client()
+    };
+    let mut request = client.request(method.clone(), url).headers(headers);
+    if let Some(body) = body {
+        request = request.body(body);
+    }
+    let response = request.send().await?;
 
     let elapsed = start_time.elapsed();
     let status = response.status();
@@ -315,8 +386,8 @@ async fn proxy_request(
         elapsed.as_millis()
     );
 
-    // 处理重定向
-    if response.status().is_redirection() {
+    // 处理重定向（非 git 客户端手动跟随；git 客户端由自定义重定向策略自动处理）
+    if !is_git && response.status().is_redirection() {
         if let Some(location) = response.headers().get(header::LOCATION) {
             if let Ok(location_str) = location.to_str() {
                 let redirect_url = if location_str.starts_with("http://")
@@ -340,6 +411,7 @@ async fn proxy_request(
                     &redirect_url,
                     reqwest::Method::GET,
                     HeaderMap::new(),
+                    None,
                 ))
                 .await;
             }
@@ -354,6 +426,7 @@ async fn http_request(
     req_url: &str,
     method: Method,
     request_headers: HeaderMap,
+    body: Option<reqwest::Body>,
 ) -> Result<reqwest::Response, reqwest::Error> {
     let patterns = RegexPatterns::new();
 
@@ -413,11 +486,16 @@ async fn http_request(
         }
     }
 
-    proxy_request(&final_url, req_method, headers).await
+    proxy_request(&final_url, req_method, headers, body).await
 }
 
 // 执行请求
-async fn do_request(req_url: &str, method: Method, headers: HeaderMap) -> impl IntoResponse {
+async fn do_request(
+    req_url: &str,
+    method: Method,
+    headers: HeaderMap,
+    body: Option<reqwest::Body>,
+) -> impl IntoResponse {
     info!("Processing request: {} {}", method, req_url);
 
     if method == Method::OPTIONS {
@@ -430,7 +508,7 @@ async fn do_request(req_url: &str, method: Method, headers: HeaderMap) -> impl I
         return (StatusCode::METHOD_NOT_ALLOWED, "Method Not Allowed").into_response();
     }
 
-    match http_request(req_url, method, headers).await {
+    match http_request(req_url, method, headers, body).await {
         Ok(resp) => {
             debug!("Request successful, streaming response");
             stream_response(resp).await.into_response()
@@ -451,9 +529,29 @@ async fn do_request(req_url: &str, method: Method, headers: HeaderMap) -> impl I
 }
 
 // 入口函数 - 处理所有请求
-async fn entry(uri: Uri, method: Method, headers: HeaderMap, query: RawQuery) -> Response<Body> {
+async fn entry(
+    uri: Uri,
+    method: Method,
+    headers: HeaderMap,
+    query: RawQuery,
+    body: Body,
+) -> Response<Body> {
     let path = uri.path();
     debug!("Incoming request: {} {}", method, path);
+
+    // POST 请求体缓冲后转发（git 智能协议 negotiate/pack 数据等；缓冲以便重定向时重放，
+    // git 请求体通常 KB 级可接受），转 reqwest::Body 不做额外整体缓冲
+    let req_body: Option<axum::body::Bytes> = if method == Method::POST {
+        match axum::body::to_bytes(body, 64 * 1024 * 1024).await {
+            Ok(buf) => Some(buf),
+            Err(e) => {
+                warn!("Failed to read request body: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // 处理根路径
     if path == "/" {
@@ -475,22 +573,22 @@ async fn entry(uri: Uri, method: Method, headers: HeaderMap, query: RawQuery) ->
     // 取出网址
     let mut redirect_url = path.trim_start_matches('/').to_string();
 
-    // 添加查询参数
-    if let Some(query_str) = query.0 {
-        if !query_str.is_empty() {
-            redirect_url.push('?');
-            redirect_url.push_str(&query_str);
-            debug!("Added query parameters: {}", query_str);
-        }
-    }
-
-    // 解码 URL
+    // 解码 URL（仅解码路径部分，单层解码；失败时使用原始值）
     let original_url = redirect_url.clone();
     redirect_url = urlencoding::decode(&redirect_url)
         .unwrap_or_default()
         .to_string();
     if original_url != redirect_url {
         debug!("URL decoded: {} -> {}", original_url, redirect_url);
+    }
+
+    // 添加查询参数（原样透传，不解码）
+    if let Some(query_str) = query.0 {
+        if !query_str.is_empty() {
+            redirect_url.push('?');
+            redirect_url.push_str(&query_str);
+            debug!("Added query parameters: {}", query_str);
+        }
     }
 
     // 处理特殊的清理逻辑：如果路径以 https:/https:// 开头（某些客户端转义结果）
@@ -507,9 +605,14 @@ async fn entry(uri: Uri, method: Method, headers: HeaderMap, query: RawQuery) ->
     // 检查是否已经是完整的 URL
     if redirect_url.starts_with("http://") || redirect_url.starts_with("https://") {
         debug!("Processing complete URL: {}", redirect_url);
-        return do_request(&redirect_url, method, headers)
-            .await
-            .into_response();
+        return do_request(
+            &redirect_url,
+            method,
+            headers,
+            req_body.map(reqwest::Body::from),
+        )
+        .await
+        .into_response();
     }
 
     // 处理有 Referer 的情况
@@ -526,7 +629,14 @@ async fn entry(uri: Uri, method: Method, headers: HeaderMap, query: RawQuery) ->
                     "Processing URL with referer: {} (from {})",
                     full_url, referer_str
                 );
-                return do_request(&full_url, method, headers).await.into_response();
+                return do_request(
+                    &full_url,
+                    method,
+                    headers,
+                    req_body.map(reqwest::Body::from),
+                )
+                .await
+                .into_response();
             }
         }
     }
@@ -537,7 +647,14 @@ async fn entry(uri: Uri, method: Method, headers: HeaderMap, query: RawQuery) ->
         if is_domain(first_part) {
             let full_url = format!("https://{}", redirect_url);
             debug!("Processing domain URL: {}", full_url);
-            return do_request(&full_url, method, headers).await.into_response();
+            return do_request(
+                &full_url,
+                method,
+                headers,
+                req_body.map(reqwest::Body::from),
+            )
+            .await
+            .into_response();
         }
     }
 
@@ -581,7 +698,10 @@ async fn main() {
     // 验证模板目录（不存在时使用内置页面）
     let template_path = format!("{}/index.html", config.template_dir);
     if !std::path::Path::new(&template_path).exists() {
-        warn!("Template file not found: {}, using built-in fallback page", template_path);
+        warn!(
+            "Template file not found: {}, using built-in fallback page",
+            template_path
+        );
     }
 
     let app = Router::new().fallback(entry).layer(

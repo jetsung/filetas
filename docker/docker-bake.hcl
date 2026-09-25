@@ -12,8 +12,8 @@ target "_image" {
 
 target "_common" {
     labels = {
-        "org.opencontainers.image.source" = "https://git.jetsung.com/idev/filetas"
-        "org.opencontainers.image.documentation" = "https://git.jetsung.com/idev/filetas"
+        "org.opencontainers.image.source" = "https://git.jetsung.com/jetsung/filetas"
+        "org.opencontainers.image.documentation" = "https://git.jetsung.com/jetsung/filetas"
         "org.opencontainers.image.authors" = "Jetsung Chan<i@jetsung.com>"
     }
     context = "."

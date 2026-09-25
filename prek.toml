@@ -1,0 +1,40 @@
+# prek 配置：Rust 项目 Git 钩子（pre-commit 的 drop-in 替代）。
+# 安装：prek install
+# 手动运行：prek run --all-files（自动修复格式；仍有问题的文件会阻断提交并报错）
+
+[[repos]]
+repo = "local" # local 仓库：直接调用项目工具链
+
+[[repos.hooks]]
+id = "rustfmt"
+name = "rustfmt"
+description = "Rust 源码格式化（cargo fmt 自动修复）"
+entry = "bash -c 'cargo fmt --all'"        # 全量格式化并自动修复；shell 包装丢弃 prek 追加的文件参数
+language = "system"
+types = ["rust"]
+
+[[repos.hooks]]
+id = "taplo"
+name = "taplo format"
+description = "TOML 格式化（Cargo.toml 等自动修复）"
+entry = "taplo format"
+language = "system"
+types = ["toml"]
+
+[[repos.hooks]]
+id = "prettier"
+name = "prettier"
+description = "Markdown/YAML/HTML 格式化（自动修复）"
+entry = "prettier --write --ignore-unknown"
+language = "system"
+types_or = ["markdown", "yaml", "html"]
+
+[[repos.hooks]]
+id = "check-version-sync"
+name = "Cargo.toml 与 Cargo.lock 版本一致性"
+description = "提交前运行 cargo check 同步 Cargo.lock（版本号/依赖变更须随代码一并提交），避免打 tag 后 cargo publish 因 lock 被改写报工作区脏而失败"
+entry = "cargo check --workspace --quiet"                                                                    # prek 会追加变更文件列表，须用 shell 包装丢弃
+language = "system"
+pass_filenames = false
+require_serial = true
+files = "^(Cargo\\.(toml|lock)|src/)"
